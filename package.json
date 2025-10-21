@@ -29,6 +29,7 @@
 	"scripts": {
 		"build": "tsdown",
 		"dev": "tsdown --watch",
+		"lint": "biome check",
 		"test": "vitest",
 		"typecheck": "tsc --noEmit",
 		"release": "bumpp && npm publish"
