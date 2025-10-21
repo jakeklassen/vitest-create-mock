@@ -1,0 +1,5 @@
+*
+
+# But include markdown files
+!*.md
+!**/*.md

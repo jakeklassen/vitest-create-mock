@@ -1,0 +1,9 @@
+{
+  "biome.enabled": true,
+  "explorer.compactFolders": false,
+  "editor.tabSize": 2,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
+  },
+}

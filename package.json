@@ -1,0 +1,49 @@
+{
+	"name": "vitest-create-mock",
+	"version": "0.0.1",
+	"description": "A utility library for creating mocks in Vitest tests.",
+	"type": "module",
+	"license": "MIT",
+	"homepage": "https://github.com/jakeklassen/vitest-create-mock#readme",
+	"bugs": {
+		"url": "https://github.com/jakeklassen/vitest-create-mock/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jakeklassen/vitest-create-mock.git"
+	},
+	"author": "Jake Klassen <jklassendev@gmail.com>",
+	"files": [
+		"dist"
+	],
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": "./dist/index.js",
+		"./package.json": "./package.json"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"test": "vitest",
+		"typecheck": "tsc --noEmit",
+		"release": "bumpp && npm publish"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.2.6",
+		"@types/node": "^24.9.1",
+		"bumpp": "^10.3.1",
+		"prettier": "^3.6.2",
+		"tsdown": "^0.15.9",
+		"typescript": "^5.8.3",
+		"vitest": "^3.1.3"
+	},
+	"dependencies": {
+		"@nestjs/common": "^11.1.7",
+		"@nestjs/testing": "^11.1.7"
+	}
+}
