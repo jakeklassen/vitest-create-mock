@@ -315,22 +315,6 @@ const service = {
 const service = createMock<MyService>();
 ```
 
-### vs @golevelup/ts-jest
-
-This library is a direct port of `@golevelup/ts-jest`'s `createMock` for Vitest. If you're migrating from Jest to Vitest, you can replace:
-
-```typescript
-// Jest
-import { createMock } from '@golevelup/ts-jest';
-```
-
-with:
-
-```typescript
-// Vitest
-import { createMock } from 'vitest-create-mock';
-```
-
 The API is intentionally identical to make migration seamless.
 
 ## How It Works
