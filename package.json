@@ -1,6 +1,6 @@
 {
 	"name": "vitest-create-mock",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"description": "A utility library for creating mocks in Vitest tests.",
 	"type": "module",
 	"license": "MIT",
