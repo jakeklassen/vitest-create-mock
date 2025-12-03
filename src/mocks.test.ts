@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import type { Mock } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { createMock } from './mocks';
 
 interface TestInterface {
@@ -36,6 +37,57 @@ describe('Mocks', () => {
 			authorization: 'auth',
 		},
 	};
+
+	describe('passing mocks', () => {
+		it('should accept already mocked objects', () => {
+			interface HttpArgumentsHost {
+				getRequest: () => typeof request | null;
+			}
+
+			interface ExecutionContext {
+				switchToHttp: () => HttpArgumentsHost;
+			}
+
+			// Create a mock of the return value (object type)
+			const httpMock = createMock<HttpArgumentsHost>({
+				getRequest: () => request,
+			});
+
+			// Pass it as the return value of a function
+			const mock = createMock<ExecutionContext>({
+				switchToHttp: () => httpMock,
+			});
+
+			const result = mock.switchToHttp().getRequest();
+
+			expect(result).toBe(request);
+			expect(mock.switchToHttp).toHaveBeenCalledTimes(1);
+			expect(httpMock.getRequest).toHaveBeenCalledTimes(1);
+		});
+
+		it('should accept vi.fn() mocks passed directly as properties', () => {
+			interface Service {
+				execute: (value: number) => string;
+			}
+
+			// Create a vi.fn() mock directly
+			const mockFn = vi
+				.fn<(value: number) => string>()
+				.mockReturnValue('mocked result');
+
+			// Pass the mock function directly as a property
+			const service = createMock<Service>({
+				execute: mockFn,
+			});
+
+			const result = service.execute(42);
+
+			expect(result).toBe('mocked result');
+			expect(service.execute).toBe(mockFn); // Should be the same function, not double-wrapped
+			expect(mockFn).toHaveBeenCalledTimes(1);
+			expect(mockFn).toHaveBeenCalledWith(42);
+		});
+	});
 
 	describe('user provided', () => {
 		it('should convert user provided test object to mocks', () => {
@@ -123,8 +175,6 @@ describe('Mocks', () => {
 			mock.func2(mockedInstance);
 			expect(mock.func2).toHaveBeenCalledWith(mockedInstance);
 
-			// In a previous version a bug caused all checks to pass, no matter which parameter was asserted
-			// These tests shall help avoiding regressions
 			expect(mock.func2).not.toHaveBeenCalledWith(42);
 			expect(mock.func2).not.toHaveBeenCalledWith('42');
 			expect(mock.func2).not.toHaveBeenCalledWith(true);
@@ -174,6 +224,7 @@ describe('Mocks', () => {
 
 			class Test {
 				get base(): Base {
+					// biome-ignore lint/suspicious/noExplicitAny: as any to satisfy Base return type
 					return undefined as any;
 				}
 			}
@@ -241,10 +292,10 @@ describe('Mocks', () => {
 					getRequest: () => typeof request;
 				};
 				switchToRpc: () => {
-					getContext: () => any;
+					getContext: () => unknown;
 				};
 				switchToWs: () => {
-					getClient: () => any;
+					getClient: () => unknown;
 				};
 			}
 
@@ -266,18 +317,19 @@ describe('Mocks', () => {
 		});
 
 		it('toString should work', () => {
-			const mock = createMock<any>();
+			const mock = createMock<Record<string, unknown>>();
 			expect(mock.toString()).toEqual('[object Object]');
 			expect(mock.nested.toString()).toEqual('function () { [native code] }');
 		});
 
 		it('nested properties should equal its partial', () => {
-			const mock = createMock<any>({ foo: { bar: 1 } });
+			const mock = createMock<Record<string, unknown>>({ foo: { bar: 1 } });
 			expect({ mock }).toEqual({ mock: { foo: { bar: 1 } } });
 			expect({ foo: mock.foo }).toEqual({ foo: { bar: 1 } });
 		});
 
-		it('nested properties can not be implictly casted to string/number', () => {
+		it('nested properties cannot be implicitly casted to string/number', () => {
+			// biome-ignore lint/suspicious/noExplicitAny: to avoid error on > operator
 			const mock = createMock<{ nested: any }>();
 
 			const testFnNumber = () => mock.nested > 0;
@@ -299,13 +351,15 @@ describe('Mocks', () => {
 		});
 
 		it('asymmetricMatch should not be set', () => {
-			const mock = createMock<any>();
+			// biome-ignore lint/suspicious/noExplicitAny: looseness needed for .nested property
+			const mock = createMock<Record<string, any>>();
 			expect(mock.asymmetricMatch).toBeUndefined();
 			expect(mock.nested.asymmetricMatch).toBeUndefined();
 		});
 
 		it('nested properties mocks should be able to set properties and override cache', () => {
-			const mock = createMock<any>();
+			// biome-ignore lint/suspicious/noExplicitAny: looseness needed for .nested property
+			const mock = createMock<Record<string, any>>();
 			const autoMockedFn = mock.nested.f;
 			expect(typeof autoMockedFn).toEqual('function');
 			const myFn = () => 5;
@@ -355,7 +409,7 @@ describe('Mocks', () => {
 
 			const mock = createMock<ExecutionContext>();
 
-			(mock.switchToHttp().getRequest as any).mockImplementation(() => request);
+			mock.switchToHttp().getRequest.mockImplementation(() => request);
 
 			const request1 = mock.switchToHttp().getRequest();
 			const request2 = mock.switchToHttp().getRequest();
@@ -381,7 +435,7 @@ describe('Mocks', () => {
 
 			const mock = createMock<Three>();
 
-			(mock.getTwo().getOne().getNumber as any).mockReturnValueOnce(42);
+			mock.getTwo().getOne().getNumber.mockReturnValueOnce(42);
 
 			const result = mock.getTwo().getOne().getNumber();
 
@@ -425,6 +479,107 @@ describe('Mocks', () => {
 				mock.func.mockReturnValue(true);
 				expect(mock.func(1, 'test')).toBe(true);
 			});
+		});
+	});
+
+	describe('type inference', () => {
+		it('should properly type mocked functions with DeepMocked return values', () => {
+			interface ExecutionContext {
+				switchToHttp: () => {
+					getRequest: () => { headers: { authorization: string } };
+				};
+			}
+
+			const mock = createMock<ExecutionContext>();
+
+			// Test that switchToHttp() returns a properly typed DeepMocked object
+			const httpContext = mock.switchToHttp();
+			expectTypeOf(httpContext).toExtend<
+				ReturnType<ExecutionContext['switchToHttp']>
+			>();
+			expectTypeOf(httpContext).toHaveProperty('getRequest');
+
+			// Test that getRequest is a Mock function
+			expectTypeOf(httpContext.getRequest).toExtend<Mock>();
+			expectTypeOf(httpContext.getRequest).toHaveProperty('mockImplementation');
+
+			// Test that we can call mockImplementation without type errors
+			expectTypeOf(httpContext.getRequest.mockImplementation).toBeFunction();
+			expectTypeOf(httpContext.getRequest.mockReturnValue).toBeFunction();
+		});
+
+		it('should properly type nested mocked function calls', () => {
+			interface One {
+				getNumber: () => number;
+			}
+
+			interface Two {
+				getOne: () => One;
+			}
+
+			interface Three {
+				getTwo: () => Two;
+			}
+
+			const mock = createMock<Three>();
+
+			// Test nested calls are properly typed
+			const two = mock.getTwo();
+			expectTypeOf(two).toExtend<Two>();
+			expectTypeOf(two).toHaveProperty('getOne');
+
+			const one = two.getOne();
+			expectTypeOf(one).toExtend<One>();
+			expectTypeOf(one).toHaveProperty('getNumber');
+
+			// Test getNumber is a Mock
+			expectTypeOf(one.getNumber).toExtend<Mock>();
+			expectTypeOf(one.getNumber).toHaveProperty('mockReturnValueOnce');
+
+			// Test that chained access works
+			expectTypeOf(mock.getTwo().getOne().getNumber).toExtend<Mock>();
+		});
+
+		it('should properly type optional functions', () => {
+			interface TypeWithOptionalFunction {
+				maybe?: () => number;
+				required: () => string;
+			}
+
+			const mock = createMock<TypeWithOptionalFunction>();
+
+			// Optional function should have mockReturnValueOnce when present
+			if (mock.maybe) {
+				expectTypeOf(mock.maybe).toExtend<Mock>();
+				expectTypeOf(mock.maybe).toHaveProperty('mockReturnValueOnce');
+			}
+
+			// Required function should be a Mock
+			expectTypeOf(mock.required).toExtend<Mock>();
+			expectTypeOf(mock.required).toHaveProperty('mockReturnValue');
+		});
+
+		it('should properly type Record<string, unknown>', () => {
+			const mock = createMock<Record<string, unknown>>();
+
+			// Properties should be any (for proxy support)
+			expectTypeOf(mock.nested).toBeAny();
+			expectTypeOf(mock.anything).toBeAny();
+		});
+
+		it('should preserve primitive types', () => {
+			interface WithPrimitives {
+				num: number;
+				str: string;
+				bool: boolean;
+			}
+
+			const mock = createMock<WithPrimitives>();
+
+			// Primitives should keep their types
+			expectTypeOf(mock.num).toBeNumber();
+			expectTypeOf(mock.str).toBeString();
+			expectTypeOf(mock.bool).toBeBoolean();
 		});
 	});
 });
