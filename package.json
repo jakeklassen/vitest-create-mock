@@ -26,6 +26,11 @@
 	"publishConfig": {
 		"access": "public"
 	},
+	"keywords": [
+		"mock",
+		"test",
+		"vitest"
+	],
 	"scripts": {
 		"build": "tsdown",
 		"dev": "tsdown --watch",
