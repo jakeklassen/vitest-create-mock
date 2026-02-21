@@ -44,17 +44,84 @@ export type PartialFuncReturn<T> = {
 type IsUnknown<T> = unknown extends T ? (T extends {} ? false : true) : false;
 
 /**
- * Helper type for mocked functions with deep mocked return types.
- * Wraps a function so that:
- * - It maintains the same parameters as the original function
- * - Its return type is deeply mocked (enabling chained mock access like `mock.getUser().getName()`)
- * - It includes all Vitest Mock methods (mockImplementation, mockReturnValue, etc.)
+ * Tuple type used to track recursion depth in DeepMocked.
+ * Each level decrements by removing an element from the tuple.
+ */
+type DecrementDepth<D extends number[]> = D extends [unknown, ...infer Rest]
+	? Rest extends number[]
+		? Rest
+		: []
+	: [];
+
+/**
+ * Default recursion depth for DeepMocked (5 levels deep).
+ * This allows good typing for most use cases while preventing TypeScript
+ * from exploding on extremely complex recursive types like Kysely.
+ */
+type DefaultDepth = [1, 1, 1, 1, 1];
+
+/**
+ * Helper type for mocked functions with depth-aware typing.
+ *
+ * At shallow depths (close to DefaultDepth): Uses full typing with Parameters<T>
+ * and DeepMocked return types for good IDE support with simple interfaces.
+ *
+ * At deeper depths (approaching 0): Falls back to permissive typing to avoid
+ * TypeScript complexity explosion with heavily nested types like Kysely.
+ *
+ * This allows simple interfaces to remain fully typed while complex nested
+ * types gracefully degrade to `any`.
  */
 // biome-ignore lint/suspicious/noExplicitAny: generic constraint for any function signature
-type MockedFunction<T extends (...args: any[]) => any> = ((
-	...args: Parameters<T>
-) => DeepMocked<ReturnType<T>>) &
-	Mock<T>;
+type MockedFunctionWithDepth<T extends (...args: any[]) => any, D extends number[]> =
+	D['length'] extends 0 | 1
+		? // At depth 0-1: use permissive typing to avoid complexity explosion
+			// biome-ignore lint/suspicious/noExplicitAny: permissive fallback for deep nesting
+			((...args: any[]) => any) & Mock
+		: // At higher depths: use full typing for good DX
+			((
+				...args: Parameters<T>
+			) => DeepMockedWithDepth<ReturnType<T>, DecrementDepth<D>>) &
+				Mock<T>;
+
+/**
+ * Properties that should be excluded from mocking to prevent interference
+ * with JavaScript runtime behavior (e.g., Promise detection).
+ */
+type ExcludedMockProperties = 'then' | 'asymmetricMatch';
+
+/**
+ * Depth-limited version of DeepMocked that stops recursing when depth reaches 0.
+ * When depth is exhausted, returns `any` to allow continued chaining without
+ * type errors. This is necessary for extremely complex types like Kysely's
+ * query builders which have deeply nested generic overloads.
+ *
+ * Special handling:
+ * - Promises: Returns Promise<DeepMocked<T>> instead of deeply mocking Promise itself
+ * - Excludes 'then' and 'asymmetricMatch' to prevent interference with runtime behavior
+ */
+type DeepMockedWithDepth<T, D extends number[]> = D extends []
+	? // biome-ignore lint/suspicious/noExplicitAny: fallback for exhausted depth - enables chaining on complex types
+		any
+	: // Handle Promise specially - don't mock the Promise, mock its resolved value
+		T extends Promise<infer U>
+		? Promise<DeepMockedWithDepth<U, DecrementDepth<D>>>
+		: {
+				[K in keyof T as K extends ExcludedMockProperties ? never : K]: IsUnknown<T[K]> extends true
+					? // biome-ignore lint/suspicious/noExplicitAny: unknown types become any for proxy support
+						any
+					: // biome-ignore lint/suspicious/noExplicitAny: generic constraint for any function signature
+						NonNullable<T[K]> extends (...args: any[]) => any
+						? undefined extends T[K]
+							? MockedFunctionWithDepth<NonNullable<T[K]>, D> | undefined
+							: MockedFunctionWithDepth<NonNullable<T[K]>, D>
+						: NonNullable<T[K]> extends object
+							? undefined extends T[K]
+								? DeepMockedWithDepth<NonNullable<T[K]>, DecrementDepth<D>> | undefined
+								: DeepMockedWithDepth<T[K], DecrementDepth<D>>
+							: T[K];
+			};
+
 
 /**
  * Recursively transforms a type into a deeply mocked version.
@@ -66,33 +133,22 @@ type MockedFunction<T extends (...args: any[]) => any> = ((
  *
  * 2. Functions:
  *    - Wrapped with MockedFunction to provide Mock methods
- *    - Return types are recursively DeepMocked
+ *    - Return types are recursively DeepMocked (up to depth limit)
  *    - Optional functions preserve their optionality (union with undefined)
  *    - Example: `mock.getUser()` returns DeepMocked<User> with all Mock methods
  *
  * 3. Objects:
- *    - Recursively transformed to DeepMocked
+ *    - Recursively transformed to DeepMocked (up to depth limit)
  *    - Optional objects preserve their optionality
  *    - Example: `mock.nested.property` is also deeply mocked
  *
  * 4. Primitives (string, number, boolean, etc.):
  *    - Left as-is since they can't have nested properties
+ *
+ * The depth limit (default 5 levels) prevents TypeScript from exploding
+ * on complex recursive types like Kysely query builders.
  */
-export type DeepMocked<T> = {
-	[K in keyof T]: IsUnknown<T[K]> extends true
-		? // biome-ignore lint/suspicious/noExplicitAny: unknown types become any for proxy support
-			any
-		: // biome-ignore lint/suspicious/noExplicitAny: generic constraint for any function signature
-			NonNullable<T[K]> extends (...args: any[]) => any
-			? undefined extends T[K]
-				? MockedFunction<NonNullable<T[K]>> | undefined // optional function
-				: MockedFunction<NonNullable<T[K]>> // required function
-			: NonNullable<T[K]> extends object
-				? undefined extends T[K]
-					? DeepMocked<NonNullable<T[K]>> | undefined // optional object
-					: DeepMocked<T[K]> // required object
-				: T[K]; // primitive
-};
+export type DeepMocked<T> = DeepMockedWithDepth<T, DefaultDepth>;
 
 /**
  * Set of property names that are part of Vitest's Mock API.
@@ -284,5 +340,5 @@ export const createMock = <T extends object>(
 	const { name = 'mock', strict = false } = options;
 	const proxy = createProxy<T>(name, strict, partial as T);
 
-	return proxy as DeepMocked<T>;
+	return proxy as unknown as DeepMocked<T>;
 };

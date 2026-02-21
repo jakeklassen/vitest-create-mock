@@ -581,5 +581,110 @@ describe('Mocks', () => {
 			expectTypeOf(mock.str).toBeString();
 			expectTypeOf(mock.bool).toBeBoolean();
 		});
+
+		it('should properly type Promise return values', async () => {
+			interface WithPromise {
+				fetchData: () => Promise<{ id: number; name: string }>;
+				fetchUser: () => Promise<{ profile: { avatar: string } }>;
+			}
+
+			const mock = createMock<WithPromise>();
+
+			// Promise-returning function should be a Mock
+			expectTypeOf(mock.fetchData).toExtend<Mock>();
+
+			// Awaited result should have correct type
+			const data = await mock.fetchData();
+			expectTypeOf(data).toHaveProperty('id');
+			expectTypeOf(data).toHaveProperty('name');
+
+			// Nested object in Promise should also be typed
+			const user = await mock.fetchUser();
+			expectTypeOf(user).toHaveProperty('profile');
+			expectTypeOf(user.profile).toHaveProperty('avatar');
+		});
+	});
+
+	describe('depth boundary regression', () => {
+		// DefaultDepth = [1,1,1,1,1] (length 5).
+		// Each function call decrements depth by 1 for the return type.
+		//
+		// Boundary behavior:
+		//   D >= 2: MockedFunctionWithDepth uses full typing (Parameters<T>, Mock<T>)
+		//   D = 1:  MockedFunctionWithDepth falls back to permissive ((...args: any[]) => any) & Mock
+		//   D = 0:  DeepMockedWithDepth returns `any` entirely
+		//
+		// With 5 levels of depth, 4 levels of function chaining are fully typed.
+		// The 5th level's functions become permissive, and their return is `any`.
+
+		interface Depth5 {
+			value: number;
+		}
+		interface Depth4 {
+			next: () => Depth5;
+			value: number;
+		}
+		interface Depth3 {
+			next: () => Depth4;
+			value: number;
+		}
+		interface Depth2 {
+			next: () => Depth3;
+			value: number;
+		}
+		interface Depth1 {
+			next: () => Depth2;
+			value: number;
+		}
+		interface DepthRoot {
+			next: () => Depth1;
+			value: number;
+		}
+
+		it('should be fully typed through 4 levels of function chaining', () => {
+			const mock = createMock<DepthRoot>();
+
+			// Level 1 (D=4): fully typed
+			const d1 = mock.next();
+			expectTypeOf(d1.value).toBeNumber();
+			expectTypeOf(d1.next).toExtend<Mock>();
+
+			// Level 2 (D=3): fully typed
+			const d2 = d1.next();
+			expectTypeOf(d2.value).toBeNumber();
+			expectTypeOf(d2.next).toExtend<Mock>();
+
+			// Level 3 (D=2): fully typed
+			const d3 = d2.next();
+			expectTypeOf(d3.value).toBeNumber();
+			expectTypeOf(d3.next).toExtend<Mock>();
+
+			// Level 4 (D=1): primitives preserved, function still extends Mock
+			const d4 = d3.next();
+			expectTypeOf(d4.value).toBeNumber();
+			expectTypeOf(d4.next).toExtend<Mock>();
+		});
+
+		it('should degrade to permissive/any at depth boundary', () => {
+			const mock = createMock<DepthRoot>();
+
+			// Chain to level 4 (D=1)
+			const d4 = mock.next().next().next().next();
+
+			// Level 5 function is permissive — still Mock, but return is any
+			const d5 = d4.next();
+			expectTypeOf(d5).toBeAny();
+		});
+
+		it('should preserve primitives at all depths including near boundary', () => {
+			const mock = createMock<DepthRoot>();
+
+			// Primitives should be typed at every level, even D=1
+			expectTypeOf(mock.value).toBeNumber();
+			expectTypeOf(mock.next().value).toBeNumber();
+			expectTypeOf(mock.next().next().value).toBeNumber();
+			expectTypeOf(mock.next().next().next().value).toBeNumber();
+			expectTypeOf(mock.next().next().next().next().value).toBeNumber();
+		});
 	});
 });

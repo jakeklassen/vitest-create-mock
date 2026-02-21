@@ -82,15 +82,14 @@ A `DeepMocked<T>` object where all methods are Vitest mocks and all properties a
 
 #### `DeepMocked<T>`
 
-Recursively transforms a type so that all methods become Vitest mocks while preserving type information.
+Recursively transforms a type so that all methods become Vitest mocks while preserving type information. Uses depth-limited recursion (5 levels) to avoid TypeScript complexity explosion on deeply nested types.
 
-```typescript
-type DeepMocked<T> = {
-  [K in keyof T]: Required<T>[K] extends (...args: any[]) => infer U
-    ? Mock<Required<T>[K]> & ((...args: Parameters<Required<T>[K]>) => DeepMocked<U>)
-    : DeepMocked<T[K]>;
-} & T;
-```
+- **Functions**: Become `Mock<T>` with return types recursively deep-mocked
+- **Promises**: Unwrapped correctly — `Promise<T>` becomes `Promise<DeepMocked<T>>`
+- **Objects**: Recursively deep-mocked
+- **Primitives**: Left as-is
+- **Excluded properties**: `then` and `asymmetricMatch` are excluded to prevent interference with Promise detection and Vitest matchers
+- **Depth fallback**: At very deep nesting levels, function signatures gracefully degrade to permissive typing to avoid TypeScript complexity limits
 
 #### `PartialFuncReturn<T>`
 
