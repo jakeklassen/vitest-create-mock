@@ -37,21 +37,21 @@ import { createMock } from 'vitest-create-mock';
 import { describe, expect, it } from 'vitest';
 
 interface UserService {
-  getUser: (id: number) => Promise<{ name: string; email: string }>;
-  deleteUser: (id: number) => Promise<void>;
+	getUser: (id: number) => Promise<{ name: string; email: string }>;
+	deleteUser: (id: number) => Promise<void>;
 }
 
 describe('UserController', () => {
-  it('should get user', async () => {
-    const userService = createMock<UserService>({
-      getUser: async () => ({ name: 'John', email: 'john@example.com' }),
-    });
+	it('should get user', async () => {
+		const userService = createMock<UserService>({
+			getUser: async () => ({ name: 'John', email: 'john@example.com' }),
+		});
 
-    const user = await userService.getUser(1);
+		const user = await userService.getUser(1);
 
-    expect(user.name).toBe('John');
-    expect(userService.getUser).toHaveBeenCalledWith(1);
-  });
+		expect(user.name).toBe('John');
+		expect(userService.getUser).toHaveBeenCalledWith(1);
+	});
 });
 ```
 
@@ -101,8 +101,8 @@ Configuration options for `createMock`:
 
 ```typescript
 type MockOptions = {
-  name?: string;
-  strict?: boolean;
+	name?: string;
+	strict?: boolean;
 };
 ```
 
@@ -112,12 +112,12 @@ type MockOptions = {
 
 ```typescript
 interface Calculator {
-  add: (a: number, b: number) => number;
-  subtract: (a: number, b: number) => number;
+	add: (a: number, b: number) => number;
+	subtract: (a: number, b: number) => number;
 }
 
 const calc = createMock<Calculator>({
-  add: (a, b) => a + b,
+	add: (a, b) => a + b,
 });
 
 expect(calc.add(2, 3)).toBe(5);
@@ -130,8 +130,8 @@ Properties and methods not provided are automatically mocked:
 
 ```typescript
 interface Service {
-  method1: () => string;
-  method2: () => number;
+	method1: () => string;
+	method2: () => number;
 }
 
 const service = createMock<Service>(); // No partial provided
@@ -147,16 +147,16 @@ expect(service.method2).toHaveBeenCalled();
 
 ```typescript
 interface ExecutionContext {
-  switchToHttp: () => {
-    getRequest: () => Request;
-    getResponse: () => Response;
-  };
+	switchToHttp: () => {
+		getRequest: () => Request;
+		getResponse: () => Response;
+	};
 }
 
 const context = createMock<ExecutionContext>({
-  switchToHttp: () => ({
-    getRequest: () => ({ headers: { authorization: 'Bearer token' } }),
-  }),
+	switchToHttp: () => ({
+		getRequest: () => ({ headers: { authorization: 'Bearer token' } }),
+	}),
 });
 
 const request = context.switchToHttp().getRequest();
@@ -169,7 +169,7 @@ Since all methods are Vitest mocks, you can use all Vitest mock features:
 
 ```typescript
 interface DataService {
-  fetchData: () => Promise<string>;
+	fetchData: () => Promise<string>;
 }
 
 const service = createMock<DataService>();
@@ -189,13 +189,13 @@ expect(service.fetchData).toHaveBeenCalledTimes(2);
 
 ```typescript
 class UserRepository {
-  findById(id: number): User | null {
-    // Implementation
-  }
+	findById(id: number): User | null {
+		// Implementation
+	}
 
-  save(user: User): void {
-    // Implementation
-  }
+	save(user: User): void {
+		// Implementation
+	}
 }
 
 const repo = createMock<UserRepository>(undefined, { name: 'UserRepository' });
@@ -212,14 +212,14 @@ Strict mode throws an error when calling methods that haven't been stubbed:
 
 ```typescript
 interface Service {
-  doSomething: (value: string) => boolean;
+	doSomething: (value: string) => boolean;
 }
 
 const service = createMock<Service>({}, { strict: true });
 
 // This will throw an error
 expect(() => service.doSomething('test')).toThrow(
-  'Method mock.doSomething was called without being explicitly stubbed'
+	'Method mock.doSomething was called without being explicitly stubbed',
 );
 
 // Stub the method first
@@ -231,14 +231,14 @@ expect(service.doSomething('test')).toBe(true); // Now it works
 
 ```typescript
 interface Config {
-  apiUrl: string;
-  timeout?: number;
-  retries?: number;
+	apiUrl: string;
+	timeout?: number;
+	retries?: number;
 }
 
 const config = createMock<Config>({
-  apiUrl: 'https://api.example.com',
-  timeout: undefined, // Explicitly set optional property
+	apiUrl: 'https://api.example.com',
+	timeout: undefined, // Explicitly set optional property
 });
 
 expect(config.apiUrl).toBe('https://api.example.com');
@@ -263,15 +263,15 @@ expect(service.value).toBe(99);
 
 ```typescript
 interface Validator {
-  validate: () => boolean;
+	validate: () => boolean;
 }
 
 const validator = createMock<Validator>();
 
 validator.validate
-  .mockReturnValueOnce(true)
-  .mockReturnValueOnce(false)
-  .mockReturnValueOnce(true);
+	.mockReturnValueOnce(true)
+	.mockReturnValueOnce(false)
+	.mockReturnValueOnce(true);
 
 expect(validator.validate()).toBe(true);
 expect(validator.validate()).toBe(false);
@@ -282,11 +282,11 @@ expect(validator.validate()).toBe(true);
 
 ```typescript
 interface AsyncService {
-  fetchUser: (id: number) => Promise<{ id: number; name: string }>;
+	fetchUser: (id: number) => Promise<{ id: number; name: string }>;
 }
 
 const service = createMock<AsyncService>({
-  fetchUser: async (id) => ({ id, name: 'User ' + id }),
+	fetchUser: async (id) => ({ id, name: 'User ' + id }),
 });
 
 const user = await service.fetchUser(123);
@@ -299,17 +299,19 @@ expect(service.fetchUser).toHaveBeenCalledWith(123);
 ### vs Manual Mocking
 
 **Manual:**
+
 ```typescript
 const service = {
-  method1: vi.fn(),
-  method2: vi.fn(),
-  nested: {
-    method3: vi.fn(),
-  },
+	method1: vi.fn(),
+	method2: vi.fn(),
+	nested: {
+		method3: vi.fn(),
+	},
 } as unknown as MyService;
 ```
 
 **With vitest-create-mock:**
+
 ```typescript
 const service = createMock<MyService>();
 ```

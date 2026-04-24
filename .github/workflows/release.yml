@@ -12,14 +12,12 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Set node
-        uses: actions/setup-node@v6
-        with:
-          node-version: lts/*
+      - name: Setup mise
+        uses: jdx/mise-action@v4
 
       - run: npx changelogithub
         env:

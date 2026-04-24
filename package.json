@@ -2,20 +2,25 @@
 	"name": "vitest-create-mock",
 	"version": "0.0.9",
 	"description": "A utility library for creating mocks in Vitest tests.",
-	"type": "module",
-	"license": "MIT",
+	"keywords": [
+		"mock",
+		"test",
+		"vitest"
+	],
 	"homepage": "https://github.com/jakeklassen/vitest-create-mock#readme",
 	"bugs": {
 		"url": "https://github.com/jakeklassen/vitest-create-mock/issues"
 	},
+	"license": "MIT",
+	"author": "Jake Klassen <jklassendev@gmail.com>",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/jakeklassen/vitest-create-mock.git"
 	},
-	"author": "Jake Klassen <jklassendev@gmail.com>",
 	"files": [
 		"dist"
 	],
+	"type": "module",
 	"main": "./dist/index.js",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -26,28 +31,27 @@
 	"publishConfig": {
 		"access": "public"
 	},
-	"keywords": [
-		"mock",
-		"test",
-		"vitest"
-	],
 	"scripts": {
 		"build": "tsdown",
 		"dev": "tsdown --watch",
-		"lint": "biome check",
+		"lint": "oxlint",
+		"lint:fix": "oxlint --fix",
+		"format": "oxfmt .",
+		"format:check": "oxfmt --check .",
 		"test": "vitest",
 		"typecheck": "tsc --noEmit",
 		"release": "bumpp && npm publish"
 	},
-	"packageManager": "pnpm@10.28.1",
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.4",
-		"@types/node": "^24.10.13",
-		"@vitest/coverage-v8": "^4.0.18",
-		"bumpp": "^10.4.1",
-		"prettier": "^3.8.1",
+		"@types/node": "^24.12.2",
+		"@vitest/coverage-v8": "^4.1.5",
+		"bumpp": "^11.0.1",
+		"oxfmt": "^0.46.0",
+		"oxlint": "^1.61.0",
+		"oxlint-tsgolint": "^0.21.1",
 		"tsdown": "^0.20.3",
-		"typescript": "^5.8.3",
-		"vitest": "^4.0.18"
-	}
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.5"
+	},
+	"packageManager": "pnpm@10.33.2"
 }

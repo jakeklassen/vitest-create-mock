@@ -1,0 +1,19 @@
+{
+	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"printWidth": 80,
+	"useTabs": true,
+	"singleQuote": true,
+	"sortImports": true,
+	"ignorePatterns": [
+		"dist",
+		"coverage",
+		".turbo",
+		".next",
+		".nuxt",
+		".svelte-kit",
+		".wrangler",
+		".source",
+		".claude",
+		".vscode"
+	]
+}

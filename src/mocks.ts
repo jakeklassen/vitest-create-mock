@@ -40,7 +40,7 @@ export type PartialFuncReturn<T> = {
  * This is needed because Record<string, unknown> properties should become `any` for
  * proxy support, while concrete types should maintain their proper types.
  */
-// biome-ignore lint/complexity/noBannedTypes: {} intentionally used to detect unknown type
+// oxlint-disable-next-line typescript/ban-types -- {} intentionally used to detect unknown type
 type IsUnknown<T> = unknown extends T ? (T extends {} ? false : true) : false;
 
 /**
@@ -72,17 +72,19 @@ type DefaultDepth = [1, 1, 1, 1, 1];
  * This allows simple interfaces to remain fully typed while complex nested
  * types gracefully degrade to `any`.
  */
-// biome-ignore lint/suspicious/noExplicitAny: generic constraint for any function signature
-type MockedFunctionWithDepth<T extends (...args: any[]) => any, D extends number[]> =
-	D['length'] extends 0 | 1
-		? // At depth 0-1: use permissive typing to avoid complexity explosion
-			// biome-ignore lint/suspicious/noExplicitAny: permissive fallback for deep nesting
-			((...args: any[]) => any) & Mock
-		: // At higher depths: use full typing for good DX
-			((
-				...args: Parameters<T>
-			) => DeepMockedWithDepth<ReturnType<T>, DecrementDepth<D>>) &
-				Mock<T>;
+type MockedFunctionWithDepth<
+	// oxlint-disable-next-line typescript/no-explicit-any -- generic constraint for any function signature
+	T extends (...args: any[]) => any,
+	D extends number[],
+> = D['length'] extends 0 | 1
+	? // At depth 0-1: use permissive typing to avoid complexity explosion
+		// oxlint-disable-next-line typescript/no-explicit-any -- permissive fallback for deep nesting
+		((...args: any[]) => any) & Mock
+	: // At higher depths: use full typing for good DX
+		((
+			...args: Parameters<T>
+		) => DeepMockedWithDepth<ReturnType<T>, DecrementDepth<D>>) &
+			Mock<T>;
 
 /**
  * Properties that should be excluded from mocking to prevent interference
@@ -101,27 +103,30 @@ type ExcludedMockProperties = 'then' | 'asymmetricMatch';
  * - Excludes 'then' and 'asymmetricMatch' to prevent interference with runtime behavior
  */
 type DeepMockedWithDepth<T, D extends number[]> = D extends []
-	? // biome-ignore lint/suspicious/noExplicitAny: fallback for exhausted depth - enables chaining on complex types
+	? // oxlint-disable-next-line typescript/no-explicit-any -- fallback for exhausted depth - enables chaining on complex types
 		any
 	: // Handle Promise specially - don't mock the Promise, mock its resolved value
 		T extends Promise<infer U>
 		? Promise<DeepMockedWithDepth<U, DecrementDepth<D>>>
 		: {
-				[K in keyof T as K extends ExcludedMockProperties ? never : K]: IsUnknown<T[K]> extends true
-					? // biome-ignore lint/suspicious/noExplicitAny: unknown types become any for proxy support
+				[K in keyof T as K extends ExcludedMockProperties
+					? never
+					: K]: IsUnknown<T[K]> extends true
+					? // oxlint-disable-next-line typescript/no-explicit-any -- unknown types become any for proxy support
 						any
-					: // biome-ignore lint/suspicious/noExplicitAny: generic constraint for any function signature
+					: // oxlint-disable-next-line typescript/no-explicit-any -- generic constraint for any function signature
 						NonNullable<T[K]> extends (...args: any[]) => any
 						? undefined extends T[K]
 							? MockedFunctionWithDepth<NonNullable<T[K]>, D> | undefined
 							: MockedFunctionWithDepth<NonNullable<T[K]>, D>
 						: NonNullable<T[K]> extends object
 							? undefined extends T[K]
-								? DeepMockedWithDepth<NonNullable<T[K]>, DecrementDepth<D>> | undefined
+								?
+										| DeepMockedWithDepth<NonNullable<T[K]>, DecrementDepth<D>>
+										| undefined
 								: DeepMockedWithDepth<T[K], DecrementDepth<D>>
 							: T[K];
 			};
-
 
 /**
  * Recursively transforms a type into a deeply mocked version.
@@ -188,7 +193,7 @@ const createProxy: {
 	<T extends object>(name: string, strict: boolean, base: T): T;
 	<T extends Mock = Mock>(name: string, strict: boolean): T;
 } = <T extends object | Mock>(name: string, strict: boolean, base?: T): T => {
-	// biome-ignore lint/suspicious/noExplicitAny: looseness needed for mocking
+	// oxlint-disable-next-line typescript/no-explicit-any -- looseness needed for mocking
 	const cache = new Map<string | number | symbol, any>();
 
 	const handler: ProxyHandler<T> = {
@@ -220,10 +225,10 @@ const createProxy: {
 				return cache.get(prop);
 			}
 
-			// biome-ignore lint/suspicious/noExplicitAny: looseness needed for mocking
+			// oxlint-disable-next-line typescript/no-explicit-any -- looseness needed for mocking
 			const checkProp = (obj as any)[prop];
 
-			// biome-ignore lint/suspicious/noExplicitAny: looseness needed for mocking
+			// oxlint-disable-next-line typescript/no-explicit-any -- looseness needed for mocking
 			let mockedProp: any;
 
 			if (prop in obj) {

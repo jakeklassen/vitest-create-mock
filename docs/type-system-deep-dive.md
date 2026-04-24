@@ -15,10 +15,10 @@ Along the way, we wanted to improve the type system to be more robust without sa
 Kysely's query builder uses a pattern like:
 
 ```typescript
-db.selectFrom("users")
-  .select(["id", "name"])
-  .where("id", "=", 1)
-  .executeTakeFirst();
+db.selectFrom('users')
+	.select(['id', 'name'])
+	.where('id', '=', 1)
+	.executeTakeFirst();
 ```
 
 Each method returns a new builder type with updated generics, and many methods have 10+ overloads. This makes Kysely one of the most complex type signatures in the TypeScript ecosystem.
@@ -53,7 +53,7 @@ This became the guiding principle: **protect simple interfaces first**. Complex 
 
 Before committing to more work, we checked Kysely's official docs and found they explicitly recommend **not mocking Kysely**:
 
-- [CONTRIBUTING.md](https://github.com/kysely-org/kysely/blob/master/CONTRIBUTING.md): *"No mocks. Everything is tested against real database instances."*
+- [CONTRIBUTING.md](https://github.com/kysely-org/kysely/blob/master/CONTRIBUTING.md): _"No mocks. Everything is tested against real database instances."_
 - [GitHub Issue #801](https://github.com/kysely-org/kysely/issues/801): Community discussion confirms mocking the chainable API is impractical.
 - Their recommended testing approach: use real databases (SQLite for unit tests) or wrap Kysely behind a repository layer and mock the wrapper.
 
@@ -69,8 +69,10 @@ The type system now uses tuple types to track recursion depth:
 
 ```typescript
 type DecrementDepth<D extends number[]> = D extends [unknown, ...infer Rest]
-  ? Rest extends number[] ? Rest : []
-  : [];
+	? Rest extends number[]
+		? Rest
+		: []
+	: [];
 
 type DefaultDepth = [1, 1, 1, 1, 1]; // 5 levels
 ```
@@ -120,15 +122,15 @@ The `createMock` return now uses `as unknown as DeepMocked<T>` instead of a dire
 
 ## Summary
 
-| Approach | Outcome |
-|---|---|
-| Mock Kysely with `@ts-nocheck` | Works but poor DX |
-| Mock Kysely with intersection types | Failed — conflicting signatures |
-| Depth-limited recursion | Helped but insufficient for Kysely's overloads |
-| Permissive typing everywhere | Fixed Kysely, broke simple interfaces |
+| Approach                                           | Outcome                                               |
+| -------------------------------------------------- | ----------------------------------------------------- |
+| Mock Kysely with `@ts-nocheck`                     | Works but poor DX                                     |
+| Mock Kysely with intersection types                | Failed — conflicting signatures                       |
+| Depth-limited recursion                            | Helped but insufficient for Kysely's overloads        |
+| Permissive typing everywhere                       | Fixed Kysely, broke simple interfaces                 |
 | **Depth-limited + permissive at deep levels only** | **Kept — protects simple types, gracefully degrades** |
-| **Promise special handling** | **Kept — fixes await on mocked async functions** |
-| **Excluded properties in types** | **Kept — aligns types with runtime proxy behavior** |
+| **Promise special handling**                       | **Kept — fixes await on mocked async functions**      |
+| **Excluded properties in types**                   | **Kept — aligns types with runtime proxy behavior**   |
 
 The type system now handles 5 levels of nesting with full type safety, gracefully falls back for deeper chains, correctly handles Promises, and excludes properties that would interfere with runtime behavior. Libraries like Kysely that exceed TypeScript's complexity limits remain unsupported at the type level — this is an acceptable boundary given Kysely's own recommendation to not mock it.
 
@@ -146,7 +148,7 @@ Instead of this:
 
 ```typescript
 // Don't do this — mocking the full Kysely surface
-import type { Kysely } from "kysely";
+import type { Kysely } from 'kysely';
 
 const db = createMock<Kysely<Database>>();
 // TypeScript: "Expression produces a union type that is too complex"
@@ -157,11 +159,11 @@ Define a repository interface that owns the contract:
 ```typescript
 // Define what your app actually needs
 interface UserRepository {
-  findById(id: number): Promise<User | undefined>;
-  findByEmail(email: string): Promise<User | undefined>;
-  create(user: NewUser): Promise<User>;
-  update(id: number, changes: Partial<User>): Promise<User>;
-  delete(id: number): Promise<void>;
+	findById(id: number): Promise<User | undefined>;
+	findByEmail(email: string): Promise<User | undefined>;
+	create(user: NewUser): Promise<User>;
+	update(id: number, changes: Partial<User>): Promise<User>;
+	delete(id: number): Promise<void>;
 }
 ```
 
@@ -170,10 +172,14 @@ Then mock the interface:
 ```typescript
 const repo = createMock<UserRepository>();
 
-repo.findById.mockResolvedValueOnce({ id: 1, name: "Alice", email: "alice@example.com" });
+repo.findById.mockResolvedValueOnce({
+	id: 1,
+	name: 'Alice',
+	email: 'alice@example.com',
+});
 
 const user = await repo.findById(1);
-expect(user?.name).toBe("Alice");
+expect(user?.name).toBe('Alice');
 ```
 
 ### Why This Works

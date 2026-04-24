@@ -1,5 +1,6 @@
 import type { Mock } from 'vitest';
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
+
 import { createMock } from './mocks';
 
 interface TestInterface {
@@ -224,7 +225,7 @@ describe('Mocks', () => {
 
 			class Test {
 				get base(): Base {
-					// biome-ignore lint/suspicious/noExplicitAny: as any to satisfy Base return type
+					// oxlint-disable-next-line typescript/no-explicit-any -- as any to satisfy Base return type
 					return undefined as any;
 				}
 			}
@@ -329,7 +330,7 @@ describe('Mocks', () => {
 		});
 
 		it('nested properties cannot be implicitly casted to string/number', () => {
-			// biome-ignore lint/suspicious/noExplicitAny: to avoid error on > operator
+			// oxlint-disable-next-line typescript/no-explicit-any -- to avoid error on > operator
 			const mock = createMock<{ nested: any }>();
 
 			const testFnNumber = () => mock.nested > 0;
@@ -351,14 +352,14 @@ describe('Mocks', () => {
 		});
 
 		it('asymmetricMatch should not be set', () => {
-			// biome-ignore lint/suspicious/noExplicitAny: looseness needed for .nested property
+			// oxlint-disable-next-line typescript/no-explicit-any -- looseness needed for .nested property
 			const mock = createMock<Record<string, any>>();
 			expect(mock.asymmetricMatch).toBeUndefined();
 			expect(mock.nested.asymmetricMatch).toBeUndefined();
 		});
 
 		it('nested properties mocks should be able to set properties and override cache', () => {
-			// biome-ignore lint/suspicious/noExplicitAny: looseness needed for .nested property
+			// oxlint-disable-next-line typescript/no-explicit-any -- looseness needed for .nested property
 			const mock = createMock<Record<string, any>>();
 			const autoMockedFn = mock.nested.f;
 			expect(typeof autoMockedFn).toEqual('function');

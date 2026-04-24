@@ -1,9 +1,10 @@
 {
-  "biome.enabled": true,
   "explorer.compactFolders": false,
   "editor.tabSize": 2,
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll.biome": "explicit",
-    "source.organizeImports.biome": "explicit"
+    "source.fixAll.oxc": "always"
   },
+  "oxc.fmt.configPath": ".oxfmtrc.json"
 }

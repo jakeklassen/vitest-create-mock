@@ -1,0 +1,41 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"plugins": ["typescript", "unicorn", "import"],
+	"categories": {
+		"correctness": "error"
+	},
+	"options": {
+		"typeAware": true
+	},
+	"ignorePatterns": [
+		"dist",
+		"coverage",
+		".turbo",
+		".next",
+		".nuxt",
+		".svelte-kit",
+		".wrangler",
+		".source",
+		".claude"
+	],
+	"rules": {
+		"eslint/no-param-reassign": "error",
+		"eslint/default-param-last": "error",
+		"eslint/no-else-return": "error",
+		"typescript/prefer-as-const": "error",
+		"typescript/prefer-enum-initializers": "error",
+		"typescript/no-inferrable-types": "error",
+		"typescript/no-explicit-any": "warn",
+		"typescript/ban-types": "error",
+		"unicorn/prefer-number-properties": "error"
+	},
+	"overrides": [
+		{
+			"files": ["**/*.test.ts"],
+			"rules": {
+				"typescript/no-base-to-string": "off",
+				"typescript/unbound-method": "off"
+			}
+		}
+	]
+}
